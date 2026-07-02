@@ -3,6 +3,7 @@
 
 #include <math.h>
 #include <pico/stdlib.h>
+#include <cstring>
 #include "../SPI/SPI.h"
 #include "ILI9341_macros.h"
 
@@ -21,60 +22,104 @@ class ILI9341 {
   /**
    * @brief Initialize the ILI9341 display
    */
-  void init();
-  inline void begin() { init(); }
+  void init(bool use_dma = false);
+  inline void begin(bool use_dma = false) { init(use_dma); }
   /**
-   * @brief Fill the entire screen with a color
-   * @param color The color to fill the screen with
-   * @note This function is not optimized for speed. Use with caution.
+   * @brief Rotate the display to a specific orientation
+   * @param rotation The rotation value (0-3) corresponding to 0, 90, 180, and
+   * 270 degrees.
+   * @note Handles overflow and wraps around if the rotation value exceeds 3.
    */
-  void fillScreen(uint16_t color);
+  void setRotation(uint8_t rotation);
   /**
-   * @brief Clear the entire screen (fill with black)
-   * @note This function is not optimized for speed. Use with caution.
+   * @brief Get the current width of the display based on rotation
+   * @return The current width of the display in pixels.
    */
-  void clearScreen() { fillScreen(0); }
+  inline uint16_t getWidth() const { return _width; }
+  /**
+   * @brief Get the current height of the display based on rotation
+   * @return The current height of the display in pixels.
+   */
+  inline uint16_t getHeight() const { return _height; }
   /**
    * @brief Set the address window for subsequent pixel writes
-   * @param x0 The starting x coordinate of the window
-   * @param y0 The starting y coordinate of the window
+   * @param x0 The starting x coordinate of the window (from top-left corner)
+   * @param y0 The starting y coordinate of the window (from top-left corner)
    * @param w The width of the window
    * @param h The height of the window
    * @return true if the address window was set successfully, false otherwise
    */
-  bool setAddressWindow(int16_t x0, int16_t y0, int16_t w, int16_t h);
+  bool setAddressWindow(int32_t x0, int32_t y0, int32_t w, int32_t h);
   /**
-   * @brief Draw a single pixel at the specified coordinates with the specified
-   * color
-   * @param x The x coordinate of the pixel
-   * @param y The y coordinate of the pixel
-   * @param color The color of the pixel
-   * @note Position is relative to the address window set and rotation; Use
-   * pushColors() for faster drawing of multiple pixels
+   * @brief Fill the entire screen with a color
+   * @param color The RGB565 color to fill the screen with.
    */
-  void drawPixel(int16_t x, int16_t y, uint16_t color);
+  void fillScreen(uint16_t color);
   /**
-   * @brief Push a list of colors to the display
-   * @param data A pointer to the array of colors to push
-   * @param len The number of colors to push
-   * @param first Whether this is the first set of colors to push
+   * @brief Clear the entire screen (fill with black)
    */
-  void pushColors(uint16_t* data, int16_t len, bool first);
+  void clearScreen() { fillScreen(0); }
   /**
-   * @brief Push a list of pixels to the display
-   * @param data A pointer to the array of pixels to push
-   * @param len The number of pixels to push
-   * @param first Whether this is the first set of pixels to push
+   * @brief Setup the SPI bus for continuous communication with the display
+   * @warning This function does not set the address window or send pixel data.
    */
-  void pushPixels(uint16_t* data, int16_t len, bool first) {
-    pushColors(data, len, first);
-  }
+  void beginStream(int32_t x0, int32_t y0, int32_t w, int32_t h);
+  /**
+   * @brief Get the active buffer for pixel data manipulation
+   * @param length Reference variable to store the length of the active buffer
+   * @return Pointer to the active buffer
+   */
+  uint16_t* getActiveBuffer(size_t& length);
+  /**
+   * @brief Submit the currently active buffer to the display for rendering
+   * @param length The length of the active buffer to be submitted.
+   * @note Streams the buffer directly to the display; setAddressWindow
+   * determines the area to be updated.
+   * @warning The function may block until the SPI bus is free, especially if
+   * DMA is used for pixel transfers.
+   */
+  void submitActiveBuffer(size_t length);
+  /**
+   * @brief Pass an external buffer to the driver for pixel data manipulation
+   * @param buffer Pointer to the external buffer (must be uint16_t array)
+   * @param length Length of the external buffer in pixels
+   * @note The external buffer must remain valid for the duration of its use.
+   * @warning The driver does not take ownership of the external buffer; it is
+   * the caller's responsibility to manage its memory.
+   */
+  void setExternalBuffer(uint16_t* buffer, size_t length);
+  /**
+   * @brief Clear the external buffer (if set) and revert to internal buffers
+   * @note After calling this function, the driver will use its internal buffers
+   * for pixel data manipulation.
+   */
+  void clearExternalBuffer();
+  /**
+   * @brief Close the SPI bus after communication with the display
+   * @warning This function does not send pixel data.
+   */
+  void endStream();
 
  private:
   uint16_t _dcPin;
   uint16_t _rstPin;
+  uint16_t _width = ILI9341_WIDTH;    // Current width based on rotation
+  uint16_t _height = ILI9341_HEIGHT;  // Current height based on rotation
+  bool _use_dma = false;  // Flag to indicate if DMA is used for pixel transfers
+  size_t _ext_size = 0;   // Size of the external buffer in pixels
 
+  // Buffer arrays for DMA transfers (if used)
+  static constexpr size_t STREAM_BUFFER_PIXELS = ILI9341_WIDTH * 16;
+  uint16_t _buffer_A[STREAM_BUFFER_PIXELS];
+  uint16_t _buffer_B[STREAM_BUFFER_PIXELS];
+
+  uint16_t* _buffer_ext = nullptr;  // Pointer to external buffer (if set)
+  uint16_t* _activeBuffer =
+      _buffer_A;  // Pointer to the currently active buffer
+
+  // Write a single command byte to the display
   void writeCmd(uint8_t cmd);
+  // Write a single data byte to the display
   void writeData(uint8_t data);
 };
 

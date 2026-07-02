@@ -37,7 +37,10 @@ pico_sdk_init()
 
 add_executable(Lappy Lappy.cpp
     ILI9341_Driver/ILI9341.cpp
-    SPI/SPI.c )
+    SPI/SPI.c
+    AnimatedGIF/src/AnimatedGIF.cpp
+    # asset_registry.S
+    )
 
 pico_set_program_name(Lappy "Lappy")
 pico_set_program_version(Lappy "0.1")

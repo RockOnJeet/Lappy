@@ -19,8 +19,7 @@ extern spi_inst_t* SPI_PORT;  // Global variable to store the SPI instance
 extern uint16_t g_csPin;  // Global variable to store the chip select pin
 
 // DMA global state
-extern int g_dma_channel;  // Global variable to store the DMA channel used for
-                           // SPI transfers
+extern bool dma_ready;
 
 /**
  * @brief Initialize the SPI interface with the specified parameters
@@ -53,28 +52,36 @@ void write8(uint8_t* data, size_t len);
  */
 void write16(uint16_t* data, size_t len);
 
-/**
- * @brief Write a 16-bit value to the SPI interface using DMA asynchronously
- * @param data The pointer to the array of 16-bit values to write
- * @param len The number of 16-bit values to write
- * @note Non-blocking function; Bus gets dynamically adjusted to 16bits.
- */
-void write16_dma_async(uint16_t* data, size_t len);
+// DMA functions
 
 /**
- * @brief Wait for any previous DMA transfers to complete
- * @note This function should be called after write16_dma_async to ensure that
- * the DMA transfer has finished before proceeding with further operations.
+ * @brief Setup a DMA bus transfer with the specified buffer and length
  */
-void wait16_dma();
+void dma_bus_start();
 
 /**
- * @brief Write a 16-bit value to the SPI interface using DMA
- * @param data The pointer to the array of 16-bit values to write
- * @param len The number of 16-bit values to write
- * @note Blocking function; Bus gets dynamically adjusted to 16bits.
+ * @brief Check if the DMA transfer is complete
+ * @return true if the transfer is complete, false otherwise
+ * @note This function is non-blocking; it checks the status of the transfer.
  */
-void write16_dma(uint16_t* data, size_t len);
+bool is_dma_bus_idle();
+
+/**
+ * @brief Start/queue a DMA transfer for the specified buffer and length
+ * @param buffer The pointer to the buffer containing data to transfer
+ * @param length The number of bytes to transfer
+ * @return true if the transfer was successfully started, false otherwise
+ * @note This function is blocking; it waits for any ongoing transfer to
+ * complete before starting a new one.
+ */
+bool queue_dma_transfer(uint16_t* buffer, size_t length);
+
+/**
+ * @brief End the current DMA bus transfer
+ * @note This function is blocking; it waits for the transfer to complete before
+ * returning.
+ */
+void dma_bus_end();
 
 #if defined(__cplusplus)
 }
