@@ -1,8 +1,6 @@
 // Implementation of the ILI9341 driver (see ILI9341.hpp for details)
 #include "ILI9341.hpp"
 
-#include <stdio.h>
-
 // ============================================================================
 // COMPILE-TIME DEBUG CONFIGURATION
 // ============================================================================
@@ -10,6 +8,7 @@
   0  // Set to 1 for active console prints, 0 to silence completely
 
 #if MODULE_DEBUG
+#include <stdio.h>
 #define DBG_PRINT(...) printf("[ILI9341] " __VA_ARGS__)
 #else
 #define DBG_PRINT(...) \
@@ -28,7 +27,7 @@ ILI9341::ILI9341(uint16_t dc, uint16_t rst) {
   if (_rstPin != (uint16_t)-1) {
     gpio_init(_rstPin);
     gpio_set_dir(_rstPin, GPIO_OUT);
-
+    DBG_PRINT("Performing hardware reset on RST pin %d\n", _rstPin);
     // Perform a clean physical hardware reset
     gpio_put(_rstPin, 1);
     sleep_ms(5);
@@ -48,28 +47,30 @@ ILI9341::~ILI9341() {
 inline void ILI9341::writeCmd(uint8_t cmd) {
   // Wait for any ongoing DMA transfers to complete before sending a command
   if (_use_dma)
-    while (!is_dma_bus_idle())
+    while (!_spi->spi_idle())
       tight_loop_contents();
 
   // Set DC low for command mode
   gpio_put(_dcPin, 0);
-  write8(&cmd, 1);  // For single vars, address must be passed
+  _spi->transfer(&cmd, 1);  // For single vars, address must be passed
 }
 
 inline void ILI9341::writeData(uint8_t data) {
   // Wait for any ongoing DMA transfers to complete before sending data
   if (_use_dma)
-    while (!is_dma_bus_idle())
+    while (!_spi->spi_idle())
       tight_loop_contents();
 
   // Set DC high for data mode
   gpio_put(_dcPin, 1);
-  write8(&data, 1);  // For single vars, address must be passed
+  _spi->transfer(&data, 1);  // For single vars, address must be passed
 }
 
-void ILI9341::init(bool use_dma) {
+void ILI9341::init(SPI* spi, bool use_dma) {
+  _spi = spi;  // Store the SPI instance for later use
+  _use_dma = use_dma;
   if (_use_dma)
-    while (!is_dma_bus_idle())
+    while (!_spi->spi_idle())
       tight_loop_contents();
 
   // Initialize the display
@@ -159,20 +160,17 @@ void ILI9341::init(bool use_dma) {
   // -------------------------------------------------------------
   // Group 5: Digital Gamma Calibration Curves
   // -------------------------------------------------------------
-  //! BUG: The data and command being decoupled could introduce timing issues.
-  //! Possible fix: Use a single burst write for the entire array (cmd + data)
-  //! instead of separate calls.
   writeCmd(0xE0);  // Positive Gamma Correction (GMCTRP1)
   uint8_t posGamma[] = {0x0F, 0x2A, 0x28, 0x08, 0x0E, 0x08, 0x54, 0xA9,
                         0x43, 0x0A, 0x0F, 0x00, 0x00, 0x00, 0x00};
   gpio_put(_dcPin, 1);  // Put into data mode manually for array burst
-  write8(posGamma, sizeof(posGamma));
+  _spi->transfer(posGamma, sizeof(posGamma));
 
   writeCmd(0xE1);  // Negative Gamma Correction (GMCTRN1)
   uint8_t negGamma[] = {0x00, 0x15, 0x17, 0x07, 0x11, 0x06, 0x2B, 0x56,
                         0x3C, 0x05, 0x10, 0x0F, 0x3F, 0x3F, 0x0F};
   gpio_put(_dcPin, 1);  // Put into data mode manually for array burst
-  write8(negGamma, sizeof(negGamma));
+  _spi->transfer(negGamma, sizeof(negGamma));
 
   // -------------------------------------------------------------
   // Group 6: Sleep Wakeup and Panel Ignition Execution
@@ -186,7 +184,6 @@ void ILI9341::init(bool use_dma) {
   DBG_PRINT("Display panel initialization completely active.\n");
 
   // Setup buffers to DMA (if used)
-  _use_dma = use_dma;
   if (_use_dma) {
     DBG_PRINT("DMA mode enabled for pixel transfers.\n");
   }
@@ -194,7 +191,7 @@ void ILI9341::init(bool use_dma) {
 
 void ILI9341::setRotation(uint8_t rotation) {
   if (_use_dma)
-    while (!is_dma_bus_idle())
+    while (!_spi->spi_idle())
       tight_loop_contents();
 
   rotation &= 0x03;  // Ensure rotation is within 0-3 range
@@ -225,7 +222,7 @@ void ILI9341::setRotation(uint8_t rotation) {
 
 bool ILI9341::setAddressWindow(int32_t x0, int32_t y0, int32_t w, int32_t h) {
   if (_use_dma)
-    while (!is_dma_bus_idle())
+    while (!_spi->spi_idle())
       tight_loop_contents();
 
   // Sanity check: Ensure the window falls within the physical screen boundaries
@@ -239,14 +236,14 @@ bool ILI9341::setAddressWindow(int32_t x0, int32_t y0, int32_t w, int32_t h) {
 
   // 1. Column Address Set (0x2A): Pass X start and X end coordinates
   writeCmd(0x2A);
-  gpio_put(_dcPin, 1);  // Assert Data Mode
   uint8_t colData[] = {
       (uint8_t)(x0 >> 8),
       (uint8_t)(x0 & 0xFF),                     // X-Start (High Byte, Low Byte)
       (uint8_t)(x1 >> 8), (uint8_t)(x1 & 0xFF)  // X-End (High Byte, Low Byte)
   };
-  write8(colData, sizeof(colData));  // write8 automatically switches hardware
-                                     // to 8-bit bus mode
+  _spi->transfer(colData,
+                 sizeof(colData));  // _spi->transfer automatically switches
+  // hardware to 8-bit bus mode
 
   // 2. Page Address Set (0x2B): Pass Y start and Y end coordinates
   writeCmd(0x2B);
@@ -256,19 +253,17 @@ bool ILI9341::setAddressWindow(int32_t x0, int32_t y0, int32_t w, int32_t h) {
       (uint8_t)(y0 & 0xFF),                     // Y-Start (High Byte, Low Byte)
       (uint8_t)(y1 >> 8), (uint8_t)(y1 & 0xFF)  // Y-End (High Byte, Low Byte)
   };
-  write8(pageData, sizeof(pageData));
+  _spi->transfer(pageData, sizeof(pageData));
 
   // 3. Memory Write (0x2C): Tell the display RAM controller to expect pixel
   // stream
   writeCmd(0x2C);
 
+  gpio_put(_dcPin, 1);  // Assert Data Mode
   return true;
 }
 
 void ILI9341::fillScreen(uint16_t color) {
-  if (_ext_size > 0)
-    clearExternalBuffer();  // Ensure we are using internal buffers for
-                            // fillScreen
   if (_use_dma) {
     DBG_PRINT("Filling screen with color 0x%04X using DMA streaming.\n", color);
 
@@ -310,11 +305,9 @@ void ILI9341::fillScreen(uint16_t color) {
     gpio_put(_dcPin, 1);  // Set DC high for data mode
     uint32_t total_pixels = (uint32_t)_width * (uint32_t)_height;
     for (uint32_t i = 0; i < total_pixels; i++) {
-      write16(&color, 1);  // Write each pixel directly
+      _spi->transfer(&color, 1);  // Write each pixel directly
     }
   }
-  setExternalBuffer(_buffer_ext,
-                    _ext_size);  // Restore external buffer if it was set
 }
 
 void ILI9341::beginStream(int32_t x0, int32_t y0, int32_t w, int32_t h) {
@@ -323,13 +316,14 @@ void ILI9341::beginStream(int32_t x0, int32_t y0, int32_t w, int32_t h) {
   setAddressWindow(x0, y0, w, h);  // Set the address window for pixel data
   gpio_put(_dcPin, 1);             // Set DC high for data mode
   if (_use_dma) {
-    dma_bus_start();  // Initialize DMA for SPI transfers
+    _spi->addDMAchannel();  // Initialize DMA for SPI transfers
   }
   DBG_PRINT("SPI bus opened for communication with display.\n");
 }
 
 uint16_t* ILI9341::getActiveBuffer(size_t& length) {
-  length = STREAM_BUFFER_PIXELS;  // Return the size of the active buffer
+  length =
+      ILI9341_WIDTH * ILI9341_HEIGHT;  // Return the size of the active buffer
   DBG_PRINT("Returning pointer to active buffer %s\n",
             (_activeBuffer == _buffer_A)   ? "A"
             : (_activeBuffer == _buffer_B) ? "B"
@@ -350,57 +344,11 @@ void ILI9341::submitActiveBuffer(size_t length) {
             : (_activeBuffer == _buffer_B) ? "B"
                                            : "External");
   if (_use_dma) {
-    queue_dma_transfer(_activeBuffer,
-                       length);  // Queue the active buffer for DMA transfer
+    _spi->transfer(_activeBuffer,
+                   length);  // Queue the active buffer for DMA transfer
   } else {
-    write16(_activeBuffer,
-            length);  // Directly write the active buffer to the display
-  }
-
-  if (!_ext_size) {  // Only swap internal buffers if not using an external
-                     // buffer
-    _activeBuffer =
-        (_activeBuffer == _buffer_A) ? _buffer_B : _buffer_A;  // Swap buffers
-  }
-}
-
-void ILI9341::setExternalBuffer(uint16_t* buffer, size_t length) {
-  if (!_use_dma) {
-    DBG_PRINT(
-        "Warning: External buffer set while DMA is disabled; this may lead to "
-        "performance issues.\n");
-  } else {
-    while (!is_dma_bus_idle())
-      tight_loop_contents();  // Ensure DMA bus is idle before switching buffers
-  }
-
-  // Set an external buffer for pixel data manipulation
-  if (buffer == nullptr || length == 0) {
-    DBG_PRINT("Invalid external buffer provided; ignoring.\n");
-    return;
-  }
-  _ext_size = length;
-  _buffer_ext = buffer;         // Store the external buffer pointer
-  _activeBuffer = _buffer_ext;  // Use the provided external buffer
-  DBG_PRINT("External buffer set for pixel data manipulation.\n");
-}
-
-void ILI9341::clearExternalBuffer() {
-  if (_use_dma) {
-    while (!is_dma_bus_idle())
-      tight_loop_contents();  // Ensure DMA bus is idle before switching buffers
-  }
-
-  // Clear the external buffer (if set) and revert to internal buffers
-  if (!_ext_size) {
-    DBG_PRINT("No external buffer to clear; already using internal buffers.\n");
-    return;
-  }
-  if (_ext_size) {
-    _ext_size = 0;
-    _buffer_ext = nullptr;      // Clear the external buffer pointer
-    _activeBuffer = _buffer_A;  // Revert to the first internal buffer
-    DBG_PRINT("External buffer cleared; reverted to internal buffer A.\n");
+    _spi->transfer(_activeBuffer,
+                   length);  // Directly write the active buffer to the display
   }
 }
 
@@ -408,7 +356,8 @@ void ILI9341::endStream() {
   // Close the SPI bus after communication with the display
   // This function can be used to finalize the SPI bus state after operations
   if (_use_dma) {
-    dma_bus_end();  // Ensure all DMA transfers are complete before closing
+    _spi->endDMAchannel();  // Ensure all DMA transfers are complete before
+                            // closing
   }
   DBG_PRINT("SPI bus closed.\n");
 }

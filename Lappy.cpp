@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include "AnimatedGIF/src/AnimatedGIF.h"
-// #include "AnimatedGIF/test_images/thisisfine_240x179.h"
-#include "ILI9341_Driver/ILI9341.hpp"
-#include "SPI/SPI.h"
+#include "SPI/SPI.hpp"
+#include "TFT/ILI9341/ILI9341.hpp"
 #include "meow.h"
 #include "pico/stdlib.h"
 
@@ -12,6 +11,7 @@
 #define PIN_CS        1
 #define PIN_DC        20
 
+SPI spi(PIN_SCK, PIN_MOSI);
 AnimatedGIF gif;
 ILI9341 lcd(PIN_DC);
 
@@ -25,28 +25,26 @@ static int iYOff;
 
 void GIFDraw(GIFDRAW* pDraw) {
   if (pDraw->y == 0) {
-    lcd.beginStream(iXOff + pDraw->iX, iYOff + pDraw->iY, pDraw->iWidth,
-                    pDraw->iHeight);
+    lcd.setAddressWindow(iXOff + pDraw->iX, iYOff + pDraw->iY, pDraw->iWidth,
+                         pDraw->iHeight);
   }
 
-  lcd.setExternalBuffer(reinterpret_cast<uint16_t*>(pDraw->pPixels),
-                        pDraw->iWidth);
+  size_t length;
+  memcpy(lcd.getActiveBuffer(length), pDraw->pPixels,
+         pDraw->iWidth * sizeof(uint16_t));
 
   lcd.submitActiveBuffer(pDraw->iWidth);
-
-  // lcd.clearExternalBuffer();
-
-  if (pDraw->y == (pDraw->iHeight - 1))
-    lcd.endStream();
 }
 
 int main() {
   stdio_init_all();
   sleep_ms(3000);
 
-  uint baud =
-      init(BAUD_RATE_MHZ * 1000 * 1000, PIN_SCK, PIN_MOSI, PIN_CS, true);
-  lcd.init(true);
+  uint baud = spi.begin(BAUD_RATE_MHZ * 1000 * 1000);
+  gpio_init(PIN_CS);
+  gpio_set_dir(PIN_CS, GPIO_OUT);
+  gpio_put(PIN_CS, 0);  // Set CS low by default (active)
+  lcd.init(&spi, true);
   // lcd.setRotation(1);  // Set to landscape orientation
 
   // Clear the screen background completely to black before drawing the centered
@@ -55,6 +53,7 @@ int main() {
   sleep_ms(250);
   printf("[MAIN] SPI Clock running at %u MHz\n", baud / 1000000);
 
+  lcd.beginStream(0, 0, lcd.getWidth(), lcd.getHeight());
   gif.begin(GIF_PALETTE_RGB565_LE);
   printf("[MAIN] Starting GIF playback...\n");
 
@@ -113,6 +112,10 @@ int main() {
     // GIF playback finished, reset to the beginning for looping
     gif.reset();
   }
+  gif.close();
+  free(pTurboBuffer);
+  free(pFrameBuffer);
+  lcd.endStream();
 
   printf("[MAIN] Loop terminated. Entering infinite idle loop.\n");
   while (true) {

@@ -15,9 +15,6 @@ extern spi_inst_t* SPI_PORT;  // Global variable to store the SPI instance
 #endif
 #include <hardware/dma.h>
 
-// Global variables for SPI configuration and state
-extern uint16_t g_csPin;  // Global variable to store the chip select pin
-
 // DMA global state
 extern bool dma_ready;
 
@@ -26,15 +23,10 @@ extern bool dma_ready;
  * @param baudrate The desired baud rate for SPI communication
  * @param sck The GPIO pin number for the SCK (clock) line
  * @param mosi The GPIO pin number for the MOSI/RX (Master Out Slave In)
- * @param chip_sel The GPIO pin number for the chip select line
  * @param use_dma Whether to use DMA for transfers
  * @return The actual baud rate set for SPI communication
  */
-uint init(uint baudrate,
-          uint16_t sck,
-          uint16_t mosi,
-          uint16_t chip_sel,
-          bool use_dma);
+uint init(uint baudrate, uint16_t sck, uint16_t mosi, bool use_dma);
 
 /**
  * @brief Write an 8-bit value to the SPI interface

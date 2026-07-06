@@ -36,8 +36,9 @@ pico_sdk_init()
 # Add executable. Default name is the project name, version 0.1
 
 add_executable(Lappy Lappy.cpp
-    ILI9341_Driver/ILI9341.cpp
+    TFT/ILI9341/ILI9341.cpp
     SPI/SPI.c
+    SPI/SPI.cpp
     AnimatedGIF/src/AnimatedGIF.cpp
     # asset_registry.S
     )

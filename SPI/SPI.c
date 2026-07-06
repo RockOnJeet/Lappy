@@ -5,7 +5,6 @@
 
 // Global variables for SPI configuration and state
 spi_inst_t* SPI_PORT = spi0;
-uint16_t g_csPin;
 int g_dma_chan_A = -1;
 int g_dma_chan_B = -1;
 
@@ -26,10 +25,10 @@ bool dma_ready = false;  // Flag to indicate if DMA is ready for transfers
 #endif
 // ============================================================================
 
-bool check_spi_pins(uint16_t sck, uint16_t mosi, uint16_t chip_sel) {
-  if ((sck == 2 && mosi == 3 && chip_sel == 1))
+bool check_spi_pins(uint16_t sck, uint16_t mosi) {
+  if ((sck == 2 && mosi == 3))
     return true;  // SPI0
-  if ((sck == 26 && mosi == 27 && chip_sel == 29))
+  if ((sck == 26 && mosi == 27))
     return false;  // SPI1
   DBG_PRINT(
       "Warning: Pins do not match standard HW SPI configurations. Recommended "
@@ -47,16 +46,10 @@ static inline void setBusWidth(uint8_t width) {
   DBG_PRINT("Set SPI bus width to %u bits\n", width);
 }
 
-uint init(uint baudrate,
-          uint16_t sck,
-          uint16_t mosi,
-          uint16_t chip_sel,
-          bool use_dma) {
-  // Save the pin for CS
-  g_csPin = chip_sel;
+uint init(uint baudrate, uint16_t sck, uint16_t mosi, bool use_dma) {
 #if SPI_MODE == 0  // HW SPI
   // Check compatible pins for HW SPI0/1
-  SPI_PORT = (check_spi_pins(sck, mosi, chip_sel)
+  SPI_PORT = (check_spi_pins(sck, mosi)
                   ? spi0
                   : spi1);  // Select SPI0 or SPI1 based on pin config
   DBG_PRINT("Initializing SPI with baudrate %.1fMHz (Detected SPI%u)\n",
@@ -65,10 +58,6 @@ uint init(uint baudrate,
 
   gpio_set_function(sck, GPIO_FUNC_SPI);
   gpio_set_function(mosi, GPIO_FUNC_SPI);
-
-  gpio_init(g_csPin);
-  gpio_set_dir(g_csPin, GPIO_OUT);
-  gpio_put(g_csPin, 1);  // Deassert CS
 
   // Stop any ongoing DMA transfers and reset the flags
   if (use_dma) {
@@ -106,19 +95,19 @@ uint init(uint baudrate,
 void write8(uint8_t* data, size_t len) {
   DBG_PRINT("Writing %zu byte(s) to SPI 8-bit\n", len);
   setBusWidth(8);
-  gpio_put(g_csPin, 0);  // Assert CS
+  // gpio_put(g_csPin, 0);  // Assert CS
   spi_write_blocking(SPI_PORT, data, len);
-  gpio_put(g_csPin, 1);  // Deassert CS
-  DBG_PRINT("SPI 8-bit write complete\n");
+  // gpio_put(g_csPin, 1);  // Deassert CS
+  // DBG_PRINT("SPI 8-bit write complete\n");
 }
 
 void write16(uint16_t* data, size_t len) {
   DBG_PRINT("Writing %zu bytes to SPI 16-bit\n", len);
   setBusWidth(16);
-  gpio_put(g_csPin, 0);  // Assert CS
+  // gpio_put(g_csPin, 0);  // Assert CS
   spi_write16_blocking(SPI_PORT, data, len);
-  gpio_put(g_csPin, 1);  // Deassert CS
-  DBG_PRINT("SPI 16-bit write complete\n");
+  // gpio_put(g_csPin, 1);  // Deassert CS
+  // DBG_PRINT("SPI 16-bit write complete\n");
 }
 
 void dma_bus_start() {
@@ -126,9 +115,9 @@ void dma_bus_start() {
     DBG_PRINT("Error: DMA channel not initialized. Call init() first.\n");
     return;
   }
-  dma_ready = true;      // Set DMA ready flag
-  setBusWidth(16);       // Set bus width to 16 bits for DMA transfers
-  gpio_put(g_csPin, 0);  // Assert CS to indicate ready for transfer
+  dma_ready = true;  // Set DMA ready flag
+  setBusWidth(16);   // Set bus width to 16 bits for DMA transfers
+  // gpio_put(g_csPin, 0);  // Assert CS to indicate ready for transfer
   DBG_PRINT("DMA bus initialized and ready for transfers\n");
 }
 
@@ -176,7 +165,7 @@ void dma_bus_end() {
     }
     tight_loop_contents();  // Wait for DMA to finish
   }
-  gpio_put(g_csPin, 1);  // Deassert CS to indicate end of transfer
-  dma_ready = false;     // Reset DMA ready flag
+  // gpio_put(g_csPin, 1);  // Deassert CS to indicate end of transfer
+  dma_ready = false;  // Reset DMA ready flag
   DBG_PRINT("DMA bus transfer completed and ended\n");
 }

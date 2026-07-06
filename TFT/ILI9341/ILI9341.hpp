@@ -4,8 +4,8 @@
 #include <math.h>
 #include <pico/stdlib.h>
 #include <cstring>
-#include "../SPI/SPI.h"
 #include "ILI9341_macros.h"
+#include "SPI/SPI.hpp"
 
 class ILI9341 {
  public:
@@ -21,9 +21,12 @@ class ILI9341 {
 
   /**
    * @brief Initialize the ILI9341 display
+   * @param spi Pointer to the SPI object for communication
+   * @param use_dma Optional flag to enable DMA for pixel transfers (default:
+   * false)
+   * @note If use_dma is true, the SPI object must support DMA transfers.
    */
-  void init(bool use_dma = false);
-  inline void begin(bool use_dma = false) { init(use_dma); }
+  void init(SPI* spi, bool use_dma = false);
   /**
    * @brief Rotate the display to a specific orientation
    * @param rotation The rotation value (0-3) corresponding to 0, 90, 180, and
@@ -80,27 +83,13 @@ class ILI9341 {
    */
   void submitActiveBuffer(size_t length);
   /**
-   * @brief Pass an external buffer to the driver for pixel data manipulation
-   * @param buffer Pointer to the external buffer (must be uint16_t array)
-   * @param length Length of the external buffer in pixels
-   * @note The external buffer must remain valid for the duration of its use.
-   * @warning The driver does not take ownership of the external buffer; it is
-   * the caller's responsibility to manage its memory.
-   */
-  void setExternalBuffer(uint16_t* buffer, size_t length);
-  /**
-   * @brief Clear the external buffer (if set) and revert to internal buffers
-   * @note After calling this function, the driver will use its internal buffers
-   * for pixel data manipulation.
-   */
-  void clearExternalBuffer();
-  /**
    * @brief Close the SPI bus after communication with the display
    * @warning This function does not send pixel data.
    */
   void endStream();
 
  private:
+  SPI* _spi;  // Pointer to the SPI object for communication with the display
   uint16_t _dcPin;
   uint16_t _rstPin;
   uint16_t _width = ILI9341_WIDTH;    // Current width based on rotation
@@ -108,14 +97,10 @@ class ILI9341 {
   bool _use_dma = false;  // Flag to indicate if DMA is used for pixel transfers
   size_t _ext_size = 0;   // Size of the external buffer in pixels
 
-  // Buffer arrays for DMA transfers (if used)
-  static constexpr size_t STREAM_BUFFER_PIXELS = ILI9341_WIDTH * 16;
-  uint16_t _buffer_A[STREAM_BUFFER_PIXELS];
-  uint16_t _buffer_B[STREAM_BUFFER_PIXELS];
-
-  uint16_t* _buffer_ext = nullptr;  // Pointer to external buffer (if set)
-  uint16_t* _activeBuffer =
-      _buffer_A;  // Pointer to the currently active buffer
+  // Buffer array for state management
+  uint16_t _buffer[ILI9341_WIDTH *
+                   ILI9341_HEIGHT];   // Internal buffer for pixel data
+  uint16_t* _activeBuffer = _buffer;  // Pointer to buffer
 
   // Write a single command byte to the display
   void writeCmd(uint8_t cmd);
