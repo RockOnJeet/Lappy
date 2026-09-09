@@ -5,6 +5,12 @@
 #define SPI_MODE HW
 #endif
 
+#if defined(NATIVE_BUILD)
+// Native (host) build: no Pico SDK hardware headers
+#include <cstddef>
+#include <cstdint>
+typedef unsigned int uint;  // Pico SDK typedef, not standard C++
+#else
 #if SPI_MODE == HW
 #include <hardware/spi.h>
 #else
@@ -13,6 +19,7 @@
 
 #include <hardware/dma.h>
 #include <pico/stdlib.h>
+#endif
 
 class SPI {
  public:
@@ -84,6 +91,14 @@ class SPI {
   void endDMAchannel();
 
  private:
+#if defined(NATIVE_BUILD)
+  // Native build: opaque state, no Pico SDK hardware types
+  void* curr_inst = nullptr;            // Opaque handle (unused on native)
+  bool current_width_is_16bit = false;  // Track current bus width state
+  int dma_chan = -1;                    // DMA channel number (unused on native)
+  // Helper function to set the bus width (8 or 16 bits)
+  void setBusWidth(bool is16bit);
+#else
   spi_inst_t* curr_inst = nullptr;  // Current SPI instance (spi0 or spi1)
 
   // Helper function to check if the provided SCK and MOSI pins are valid for
@@ -96,6 +111,7 @@ class SPI {
   // DMA state
   int dma_chan = -1;                     // DMA channel number for SPI transfers
   dma_channel_config_t dma_chan_config;  // DMA channel configuration
+#endif
 };
 
 #endif  // SPI_HPP

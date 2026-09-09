@@ -2,10 +2,10 @@
 #define ILI9341_HPP
 
 #include <math.h>
-#include <pico/stdlib.h>
 #include <cstring>
 #include "ILI9341_macros.h"
 #include "SPI/SPI.hpp"
+#include "pico/stdlib.h"
 
 class ILI9341 {
  public:
