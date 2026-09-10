@@ -62,7 +62,7 @@ target_include_directories(hal_interface INTERFACE
 )
 
 # ============================================================================
-# Delegates
+# Delegates (platform/<target>/ and src/) to subdirectories
 # ============================================================================
 add_subdirectory(platform/${TARGET_PLATFORM})
 add_subdirectory(src)

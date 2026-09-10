@@ -9,13 +9,18 @@ target_include_directories(animatedgif PUBLIC
     ${CMAKE_SOURCE_DIR}/AnimatedGIF/src
 )
 
-# Third-party AnimatedGIF includes pico/stdlib.h.
-# - Native: provide the stub (PUBLIC so consumers resolve the transitive dep).
-# - Pico:   link pico_stdlib so the real SDK header is found.
+# Upstream AnimatedGIF expects Arduino millis() / delay().
+# Our platform.cpp files provide them; this header declares them.
+target_include_directories(animatedgif PUBLIC
+    ${CMAKE_SOURCE_DIR}/include
+)
+
+# Pico stdlib is still needed for other SDK calls (GPIO, stdio, etc.).
 if(NATIVE_BUILD)
-    target_include_directories(animatedgif PUBLIC
-        ${CMAKE_SOURCE_DIR}/stubs
-    )
+    # Upstream AnimatedGIF guards millis()/delay() behind !__LINUX__ &&
+    # !__MACH__.  Define __LINUX__ so those Arduino-only calls are compiled out
+    # on native host builds.
+    target_compile_definitions(animatedgif PUBLIC __LINUX__)
 else()
     target_link_libraries(animatedgif PUBLIC pico_stdlib)
 endif()
