@@ -1,2 +1,3 @@
 build
+sdl2-sim/build
 !.vscode/*
