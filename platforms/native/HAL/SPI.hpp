@@ -1,8 +1,8 @@
 #pragma once
 
 #include "HAL/ISPI.hpp"
-
-enum spi_inst_t { spi0 = 0, spi1 };
+#include "TraceDMA.hpp"
+#include "TraceSPI.hpp"
 
 /**
  * @brief Hardware SPI implementation for RP2 platform.

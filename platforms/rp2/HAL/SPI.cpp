@@ -101,7 +101,7 @@ bool SPI::isBusy() const {
           spi_is_busy(_spi));
 }
 
-SPI::~SPI() {
+void SPI::end(void) {
   // Performs cleanup of SPI and DMA (if configured)
   if (_dma_chan >= 0) {  // Valid DMA channel exists
     dma_channel_abort(_dma_chan);
@@ -113,4 +113,8 @@ SPI::~SPI() {
     spi_deinit(_spi);
     _spi = nullptr;  // Reset interface
   }
+}
+
+SPI::~SPI() {
+  end();
 }
