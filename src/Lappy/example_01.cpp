@@ -1,5 +1,8 @@
-#include <iostream>
+#include <stdio.h>
+#include "SPI.hpp"
+
+SPI spi();
 
 int main(void) {
-  std::cout << "Hello World!" << std::endl;
+    return 0;
 }

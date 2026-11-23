@@ -9,7 +9,10 @@ rp2
 # Add other supported platforms here
 )
 # Default platform setup
-set(PLATFORM "rp2" CACHE STRING "Build target")
+set(PLATFORM "" CACHE STRING "Build target")
+if(NOT PLATFORM)
+    message(FATAL_ERROR "PLATFORM must be set by a CMake preset.")
+endif()
 set_property(CACHE PLATFORM PROPERTY STRINGS ${SUPPORTED_PLATFORMS})
 
 # Check if the selected target is in the SUPPORTED_PLATFORMS list

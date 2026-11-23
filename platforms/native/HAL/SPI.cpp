@@ -1,56 +1,71 @@
+// Source file for SPI implementation within native as stubs.
+
 #include "SPI.hpp"
 
-#include <cstdio>
-
-// ----------------- TODO -----------------
-// Make this code output to a routable setup, so that it can be used in unit
-// tests without polluting stdout.
-// ----------------------------------------
-
-#define MODULE_DEBUG 1
-
-#if MODULE_DEBUG
-#define DBG_PRINT(...) printf("[SPI] " __VA_ARGS__)
-#else
-#define DBG_PRINT(...) \
-  do {                 \
-  } while (0)
-#endif
-
-// ============================================================================
-// Construction
-// ============================================================================
-SPI::SPI(uint16_t sck, uint16_t mosi) {
-  DBG_PRINT("constructed (sck=%u, mosi=%u)\n", sck, mosi);
+// Tiny helper function(s)
+void SPI::setWidth(bool is8b) {
+  if (_is8b == is8b || _spi == nullptr)
+    return;
+  // TODO: Log the size change
+  _is8b = is8b;  // Update new size
 }
 
-// ============================================================================
-// ISPI overrides
-// ============================================================================
-uint32_t SPI::begin(uint32_t baudrate) {
-  DBG_PRINT("begin @ %.1f MHz (simulated)\n", (float)(baudrate / 1'000'000.0));
+SPI::SPI(spi_inst_t* spi, bool use_dma) : _spi(spi) {
+  if (!use_dma)
+    return;
+  // If we're here, DMA setup is requested
+  // TODO: Log DMA channel init request
+  _dma_chan = 0;  // Simulate fake channel 0 creation
+}
+
+uint SPI::begin(const spi_pins_t pins, const uint baudrate) {
+  // TODO: Log provided pins and requested baudrate
   return baudrate;
 }
 
-void SPI::transfer(uint8_t* data, size_t len) {
-  DBG_PRINT("write %zu byte(s): ", len);
-  for (size_t i = 0; i < len; i++)
-    printf("%02X ", data[i]);
-  printf("\n");
+int SPI::transfer8(const uint8_t* data, size_t len, uint8_t* dest) {
+  if (_spi == nullptr)
+    return 0;
+  setWidth(true);
+  if (dest)  // User expects data back; only blocking SPI can do this
+    ;        // TODO: Log read+write operation
+  else
+    ;  // TODO: Log write only op
+  setWidth(false);
+  return len;
 }
 
-void SPI::transfer(uint16_t* data, size_t len) {
-  DBG_PRINT("write %zu word(s): ", len);
-  for (size_t i = 0; i < len; i++)
-    printf("%04X ", data[i]);
-  printf("\n");
+int SPI::transfer16(const uint16_t* data, size_t len, uint16_t* dest) {
+  if (_spi == nullptr)
+    return 0;
+  if (dest) {  // User expects data back; only blocking SPI can do this
+    // TODO: Log read+write operation
+    return len;
+  }
+  if (_dma_chan == -1 ||
+      len < DMA_THRESHOLD) {  // DMA is disabled OR data below threshold
+                              // TODO: Log write only op
+    return len;
+  } else {
+    // TODO: Log DMA call
+    return len;
+  }
 }
 
-bool SPI::isIdle() {
-  DBG_PRINT("checked state\n");
-  return true;
+bool SPI::isBusy() const {
+  // Check if DMA (if used) and SPI are idle.
+  // TODO: Log status check
+  return false;
 }
 
-void SPI::end() {
-  DBG_PRINT("deinitialized\n");
+SPI::~SPI() {
+  // Performs cleanup of SPI and DMA (if configured)
+  if (_dma_chan >= 0) {  // Valid DMA channel exists
+    // TODO: Log channel cleanup request
+    _dma_chan = -1;  // Reset interface
+  }
+  if (_spi) {  // Valid SPI channel exists
+    // TODO: Log spi cleanup request
+    _spi = nullptr;  // Reset interface
+  }
 }

@@ -1,0 +1,33 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "rp2",
+      "displayName": "RP2 (RISC)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/rp2",
+      "cacheVariables": {
+        "PLATFORM": "rp2"
+      }
+    },
+    {
+      "name": "native",
+      "displayName": "Native",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/native",
+      "cacheVariables": {
+        "PLATFORM": "native"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "rp2",
+      "configurePreset": "rp2"
+    },
+    {
+      "name": "native",
+      "configurePreset": "native"
+    }
+  ]
+}
