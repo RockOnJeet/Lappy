@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "configurePresets": [
+    {
+      "name": "native",
+      "displayName": "Native Desktop",
+      "description": "Build for the host operating system",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/native",
+      "cacheVariables": {
+        "PLATFORM": "native"
+      }
+    },
+    {
+      "name": "rp2",
+      "displayName": "RP2",
+      "description": "Build for Raspberry Pi RP2",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/rp2",
+      "cacheVariables": {
+        "PLATFORM": "rp2"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "native",
+      "configurePreset": "native"
+    },
+    {
+      "name": "rp2",
+      "configurePreset": "rp2"
+    }
+  ]
+}
