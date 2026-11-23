@@ -3,6 +3,35 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "HAL/ISPI.hpp"
+
+/**
+ * @brief Struct for setting up display pins.
+ * @param CS Chip Select - Used to switch active device
+ * @param DC Data/Command (Required) - Informs display the type of data sent.
+ * @param RST Reset (Optional) - Used to toggle HW reset
+ * @note Only SPI mode supported; will union 8/16bit data later.
+ */
+struct tft_spi_pins_t {
+  uint8_t CS;
+  uint8_t DC;
+  uint8_t RST = UINT8_MAX;  // Disabled by default
+};
+
+/**
+ * @brief Struct for defining any window size in pixels.
+ * @param x The starting x coordinate.
+ * @param y The starting y coordinate.
+ * @param width The width of the window from the x coordinate.
+ * @param height The height of the window from the y coordinate.
+ */
+struct window_size_t {
+  uint16_t x;
+  uint16_t y;
+  uint16_t width;
+  uint16_t height;
+};
+
 /**
  * @file IDisplay.hpp
  * @brief Pure abstract interface for a color display.
@@ -14,27 +43,37 @@ class IDisplay {
   virtual ~IDisplay() = default;
 
   /**
+   * @brief Setup the display to be ready to receive data.
+   * @param spi SPI bus to which the display is connected to.
+   */
+  virtual void init(ISPI* spi) = 0;
+
+  /**
    * @brief Set display rotation.
    * @param rotation 0–3 mapping to 0°, 90°, 180°, 270°.
    */
   virtual void setRotation(uint8_t rotation) = 0;
 
-  /** @brief Get current width in pixels (accounts for rotation and address
-   * window). */
+  /**
+   * @brief Get the active draw area width.
+   * @return Number of drawable pixel columns.
+   * @note This fn accounts for rotation and address windows.
+   */
   virtual uint16_t getWidth() const = 0;
 
-  /** @brief Get current height in pixels (accounts for rotation and address
-   * window). */
+  /**
+   * @brief Get the active draw area height.
+   * @return Number of drawable pixel rows.
+   * @note This fn accounts for rotation and address windows.
+   */
   virtual uint16_t getHeight() const = 0;
 
   /**
    * @brief Define the rectangular region for subsequent pixel writes.
-   * @note Allows overdraw, i.e. out-of-bounds coordinates are clipped.
+   * @warning Invalid areas (out-of-bounds) are rejected.
+   * @return Whether the area is valid.
    */
-  virtual void setAddressWindow(int32_t x0,
-                                int32_t y0,
-                                int32_t w,
-                                int32_t h) = 0;
+  virtual bool setAddressWindow(window_size_t size) = 0;
 
   /**
    * @brief Fill the entire display with a single RGB565 color.

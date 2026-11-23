@@ -62,11 +62,12 @@ uint SPI::begin(const spi_pins_t pins, const uint baudrate) {
       ((_spi == spi0) ? (SPI0_SCK_MASK & (1u << (s & 0x0F)))
                       : (SPI1_SCK_MASK & (1u << (s & 0x0F)))) &&
       pins.MOSI == s + 1 && (pins.MISO == UINT8_MAX || pins.MISO == s - 2);
+  _pins = pins;  // Save the requested pins
   // Initialize the pins appropriately
-  gpio_set_function(pins.SCK, GPIO_FUNC_SPI);
-  gpio_set_function(pins.MOSI, GPIO_FUNC_SPI);
-  if (pins.MISO != UINT8_MAX)
-    gpio_set_function(pins.MISO, GPIO_FUNC_SPI);
+  gpio_set_function(_pins.SCK, GPIO_FUNC_SPI);
+  gpio_set_function(_pins.MOSI, GPIO_FUNC_SPI);
+  if (_pins.MISO != UINT8_MAX)
+    gpio_set_function(_pins.MISO, GPIO_FUNC_SPI);
   return (is_valid ? spi_init(_spi, baudrate) : 0);
 }
 
@@ -117,4 +118,9 @@ void SPI::end(void) {
 
 SPI::~SPI() {
   end();
+  // Clear pin states
+  gpio_deinit(_pins.SCK);
+  gpio_deinit(_pins.MOSI);
+  if (_pins.MISO != UINT8_MAX)
+    gpio_deinit(_pins.MISO);
 }

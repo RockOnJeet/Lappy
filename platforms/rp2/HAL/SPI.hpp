@@ -71,6 +71,7 @@ class SPI : public ISPI {
 
  private:
   // SPI
+  spi_pins_t _pins;                  // Holds connected pins
   spi_inst_t* _spi = nullptr;        // Holds current instance (spi0/1)
   bool _is8b = false;                // Default to faster 16-bit width
   void setWidth(bool is8b = false);  // Helper fn to change bus width

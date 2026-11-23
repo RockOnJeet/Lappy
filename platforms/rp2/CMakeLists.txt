@@ -7,8 +7,12 @@ pico_sdk_init()
 
 # Combine all source files into a single library for this platform
 add_library(lappy_interfaces STATIC
+    # HAL interfaces
     # HAL/GPIO.cpp
     HAL/SPI.cpp
+
+    # Peripheral interfaces
+    TFT/ILI9341/ILI9341.cpp
 )
 
 # Expose generic_interfaces to this lib

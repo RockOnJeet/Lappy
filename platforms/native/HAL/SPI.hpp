@@ -5,9 +5,9 @@
 #include "TraceSPI.hpp"
 
 /**
- * @brief Hardware SPI implementation for RP2 platform.
- * @note As hardware pins are function-specific, check datasheet for valid pins
- * per instance.
+ * @brief Hardware SPI implementation for Native platform.
+ * @note This class only exists to log all signals. So not a real
+ * implementation.
  */
 class SPI : public ISPI {
  public:
