@@ -6,34 +6,31 @@
 inline void ILI9341::sendInitCmd(uint8_t cmd,
                                  const uint8_t* data,
                                  uint8_t len) {
-  gpio_put(_pins.DC, false);
+  _gpio->set(_pins.DC, false);
   _spi->transfer8(&cmd, 1);
 
   if (len) {
-    gpio_put(_pins.DC, true);
+    _gpio->set(_pins.DC, true);
     _spi->transfer8(data, len);
   }
 }
 
 ILI9341::ILI9341(const tft_spi_pins_t pins) : _pins(pins) {
   // Initialize the pins appropriately
-  gpio_set_function(_pins.CS, GPIO_FUNC_SIO);
-  gpio_put(_pins.CS, 1);  // preload HIGH (Inactive)
-  gpio_set_dir(_pins.CS, GPIO_OUT);
+  _gpio->init(_pins.CS, IGPIO::Mode::Output);
+  _gpio->set(_pins.CS, 1);  // preload HIGH (Inactive)
 
-  gpio_set_function(_pins.DC, GPIO_FUNC_SIO);
-  gpio_put(_pins.DC, 1);  // idle HIGH (data mode)
-  gpio_set_dir(_pins.DC, GPIO_OUT);
+  _gpio->init(_pins.DC, IGPIO::Mode::Output);
+  _gpio->set(_pins.DC, 1);  // idle HIGH (data mode)
 
   if (_pins.RST != UINT8_MAX) {
-    gpio_set_function(_pins.RST, GPIO_FUNC_SIO);
-    gpio_put(_pins.RST, 1);  // keep out of reset
-    gpio_set_dir(_pins.RST, GPIO_OUT);
+    _gpio->init(_pins.RST, IGPIO::Mode::Output);
+    _gpio->set(_pins.RST, 1);  // keep out of reset
   }
 }
 
-void ILI9341::init(ISPI* spi) {
-  _spi = spi;
+void ILI9341::init() {
+  // _spi = spi;
   if (!_spi)
     return;  // Invalid instance provided
 
@@ -70,8 +67,8 @@ uint16_t ILI9341::getHeight() const {
 ILI9341::~ILI9341(void) {
   endStream();
   // Clear pin states
-  gpio_deinit(_pins.CS);
-  gpio_deinit(_pins.DC);
+  _gpio->deinit(_pins.CS);
+  _gpio->deinit(_pins.DC);
   if (_pins.RST != UINT8_MAX)
-    gpio_deinit(_pins.RST);
+    _gpio->deinit(_pins.RST);
 }

@@ -7,7 +7,7 @@
  * simulated SPI peripheral(s).
  */
 
-#include "HAL/ISPI.hpp"
+#include "HAL/ISPI.hpp"  // Base class
 
 // Platform specific base includes
 #include <native/stdlib.h>

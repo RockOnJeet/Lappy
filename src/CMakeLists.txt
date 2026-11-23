@@ -19,8 +19,7 @@ add_executable(Lappy
 
 target_link_libraries(Lappy
     PRIVATE
-        # lappy_core
-        lappy_interfaces
+        lappy_core
 )
 
 # RP2 specific setup

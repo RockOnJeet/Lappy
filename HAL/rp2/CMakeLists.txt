@@ -9,10 +9,10 @@ pico_sdk_init()
 add_library(lappy_interfaces STATIC
     # HAL interfaces
     # HAL/GPIO.cpp
-    HAL/SPI.cpp
+    SPI/SPI.cpp
 
     # Peripheral interfaces
-    TFT/ILI9341/ILI9341.cpp
+    ../../peripherals/Displays/ILI9341/ILI9341.cpp
 )
 
 # Expose generic_interfaces to this lib
@@ -33,7 +33,7 @@ target_link_libraries(lappy_interfaces
 # Include the current directory for header files
 target_include_directories(lappy_interfaces
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/HAL
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # Fn to setup extras (must be called POST add_exec())

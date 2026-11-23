@@ -39,18 +39,23 @@ if(PLATFORM STREQUAL "rp2")
     # Board definition
     set(PICO_BOARD pico2 CACHE STRING "Board type")
     # Pull in Raspberry Pi Pico SDK (must be before project)
-    include(${CMAKE_SOURCE_DIR}/platforms/rp2/pico_sdk_import.cmake)
+    include(${CMAKE_SOURCE_DIR}/HAL/rp2/pico_sdk_import.cmake)
 endif()
 if(PLATFORM STREQUAL "native")
-    # Pull in Native SDK (must be before project)
-    include(${CMAKE_SOURCE_DIR}/platforms/native/native_sdk_import.cmake)
+    # Pull in Native SDK configuration (must be before project)
+    include(${CMAKE_SOURCE_DIR}/HAL/native/native_sdk_import.cmake)
 endif()
 
 # Define the project
 project(Lappy LANGUAGES C CXX)
 
+# Make the native SDK targets available before configuring the native HAL.
+if(PLATFORM STREQUAL "native")
+    add_subdirectory(lib/GenericSDK)
+endif()
+
 # Delegate to the target-specific CMakeLists.txt file based on the selected target
 add_subdirectory(include)
-add_subdirectory(platforms/${PLATFORM})
+add_subdirectory(HAL/${PLATFORM})
 add_subdirectory(src)
 add_subdirectory(test)

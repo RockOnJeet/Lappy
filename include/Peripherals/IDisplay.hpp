@@ -3,8 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "HAL/ISPI.hpp"
-
 /**
  * @brief Struct for setting up display pins.
  * @param CS Chip Select - Used to switch active device
@@ -44,9 +42,9 @@ class IDisplay {
 
   /**
    * @brief Setup the display to be ready to receive data.
-   * @param spi SPI bus to which the display is connected to.
+   * Sends any required initialization commands to the display controller.
    */
-  virtual void init(ISPI* spi) = 0;
+  virtual void init() = 0;
 
   /**
    * @brief Set display rotation.

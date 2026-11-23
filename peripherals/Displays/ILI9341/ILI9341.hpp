@@ -1,9 +1,10 @@
 #ifndef ILI9341_HPP
 #define ILI9341_HPP
 
+#include "HAL/IGPIO.hpp"
+#include "HAL/ISPI.hpp"
 #include "ILI9341_macros.h"
 #include "Peripherals/IDisplay.hpp"
-#include "pico/stdlib.h"
 
 class ILI9341 : public IDisplay {
  public:
@@ -17,9 +18,9 @@ class ILI9341 : public IDisplay {
 
   /**
    * @brief Setup the display to be ready to receive data.
-   * @param spi SPI bus to which the display is connected to.
+   * Sends any required initialization commands to the display controller.
    */
-  virtual void init(ISPI* spi = nullptr) override;
+  virtual void init() override;
 
   /**
    * @brief Set display rotation.
@@ -84,10 +85,11 @@ class ILI9341 : public IDisplay {
   void endStream() override;
 
  private:
-  tft_spi_pins_t _pins;  // Holds connected pins
-  ISPI* _spi = nullptr;  // Holds current SPI instance
-  uint8_t _orient = 0;   // Current orientation (portrait default)
-  window_size_t _win;    // Active window size
+  tft_spi_pins_t _pins;    // Holds connected pins
+  ISPI* _spi = nullptr;    // Holds current SPI instance
+  IGPIO* _gpio = nullptr;  // Holds current GPIO instance
+  uint8_t _orient = 0;     // Current orientation (portrait default)
+  window_size_t _win;      // Active window size
 
   // Helper function(s)
   inline void sendInitCmd(uint8_t cmd, const uint8_t* data, uint8_t len);
