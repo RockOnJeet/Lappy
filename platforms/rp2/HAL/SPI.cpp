@@ -15,6 +15,7 @@ void SPI::setWidth(bool is8b) {
   while (isBusy())
     tight_loop_contents();
 
+  // Custom implementation to change size on the fly.
   spi_hw_t* hw = spi_get_hw(_spi);               // Get current instance
   hw_clear_bits(&hw->cr1, SPI_SSPCR1_SSE_BITS);  // Disable SSP
   hw->cr0 =

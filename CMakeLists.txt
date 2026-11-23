@@ -41,6 +41,10 @@ if(PLATFORM STREQUAL "rp2")
     # Pull in Raspberry Pi Pico SDK (must be before project)
     include(${CMAKE_SOURCE_DIR}/platforms/rp2/pico_sdk_import.cmake)
 endif()
+if(PLATFORM STREQUAL "native")
+    # Pull in Native SDK (must be before project)
+    include(${CMAKE_SOURCE_DIR}/platforms/native/native_sdk_import.cmake)
+endif()
 
 # Define the project
 project(Lappy LANGUAGES C CXX)

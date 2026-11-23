@@ -26,10 +26,10 @@ struct tft_spi_pins_t {
  * @param height The height of the window from the y coordinate.
  */
 struct window_size_t {
-  uint16_t x;
-  uint16_t y;
-  uint16_t width;
-  uint16_t height;
+  unsigned int x;
+  unsigned int y;
+  unsigned int width;
+  unsigned int height;
 };
 
 /**

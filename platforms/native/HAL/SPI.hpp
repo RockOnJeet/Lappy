@@ -1,13 +1,22 @@
 #pragma once
 
+/**
+ * @file SPI.hpp
+ * @brief Hardware SPI implementation for native platform.
+ * The SPI class inherits from the ISPI interface and acts as a wrapper for the
+ * simulated SPI peripheral(s).
+ */
+
 #include "HAL/ISPI.hpp"
-#include "TraceDMA.hpp"
-#include "TraceSPI.hpp"
+
+// Platform specific base includes
+#include <native/stdlib.h>
+#include <sim/spi.h>
 
 /**
- * @brief Hardware SPI implementation for Native platform.
- * @note This class only exists to log all signals. So not a real
- * implementation.
+ * @brief Simulated SPI implementation for Native platform.
+ * @note This class forwards all calls to a common sim interface, which is a
+ * wrapper for the native SPI pin(s).
  */
 class SPI : public ISPI {
  public:
@@ -69,11 +78,13 @@ class SPI : public ISPI {
 
  private:
   // SPI
+  spi_pins_t _pins;                  // Holds connected pins
   spi_inst_t* _spi = nullptr;        // Holds current instance (spi0/1)
   bool _is8b = false;                // Default to faster 16-bit width
   void setWidth(bool is8b = false);  // Helper fn to change bus width
 
   // DMA
-  int _dma_chan = -1;         // Holds active channel number (-1 = disabled)
-  uint8_t DMA_THRESHOLD = 8;  // (arbitrary value for now)
+  int _dma_chan = -1;  // Holds active channel number (-1 = disabled)
+  dma_channel_config_t _dma_config;  // Holds the active channel config
+  uint8_t DMA_THRESHOLD = 8;         // (arbitrary value for now)
 };

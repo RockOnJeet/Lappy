@@ -3,7 +3,7 @@
 
 #include "ILI9341_macros.h"
 #include "Peripherals/IDisplay.hpp"
-#include "pico/stdlib.h"
+#include "native/stdlib.h"
 
 class ILI9341 : public IDisplay {
  public:

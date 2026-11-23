@@ -1,2 +1,28 @@
+# --- CMake Build & Output Directories ---
 build/
+[Bb]uild/
+*build*/
+bin/
+Bin/
+
+# --- CMake Generated Files ---
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+Makefile
+install_manifest.txt
+CTestTestfile.cmake
+DartConfiguration.tcl
+_deps/
+
+# --- IDE Files (Optional) ---
 .vscode/
+.idea/
+*.xcodeproj/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# --- Custom Exclusions ---
+Deprecated/

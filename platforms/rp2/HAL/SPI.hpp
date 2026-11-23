@@ -1,7 +1,15 @@
 #pragma once
 
+/**
+ * @file SPI.hpp
+ * @brief Hardware SPI implementation for RP2 platform.
+ * The SPI class inherits from the ISPI interface and acts as a wrapper for the
+ * RP2 hardware SPI peripheral(s).
+ */
+
 #include "HAL/ISPI.hpp"
 
+// Platform specific base includes
 #include <hardware/dma.h>
 #include <hardware/spi.h>
 #include <pico/stdlib.h>

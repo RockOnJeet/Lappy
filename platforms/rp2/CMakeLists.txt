@@ -24,6 +24,8 @@ target_link_libraries(lappy_interfaces
         hardware_dma     # DMA support
         # hardware_pio    # PIO support
 )
+
+# Generate PIO headers
 # pico_generate_pio_header(Lappy
 #     ${CMAKE_CURRENT_LIST_DIR}/main.pio
 # )
